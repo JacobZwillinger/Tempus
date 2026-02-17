@@ -5,7 +5,7 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: { key: string } }
 ) {
-  const entry = getWeek(params.key);
+  const entry = await getWeek(params.key);
   if (!entry) {
     return NextResponse.json(null);
   }
@@ -16,6 +16,6 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: { key: string } }
 ) {
-  deleteWeek(params.key);
+  await deleteWeek(params.key);
   return NextResponse.json({ ok: true });
 }

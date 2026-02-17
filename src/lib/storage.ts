@@ -1,36 +1,24 @@
-import fs from "fs";
-import path from "path";
+import { Redis } from "@upstash/redis";
+import { put, del } from "@vercel/blob";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const SETTINGS_FILE = path.join(DATA_DIR, "settings.json");
-const WEEKS_FILE = path.join(DATA_DIR, "weeks.json");
-const IMAGES_DIR = path.join(DATA_DIR, "images");
+const redis = Redis.fromEnv();
 
-function ensureDirs() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(IMAGES_DIR)) fs.mkdirSync(IMAGES_DIR, { recursive: true });
-}
+const SETTINGS_KEY = "tempus:settings";
+const WEEKS_KEY = "tempus:weeks";
 
 // --- Settings ---
 
 export interface Settings {
-  birthdate: string; // ISO date string
+  birthdate: string;
   expectancyYears: number;
 }
 
-export function getSettings(): Settings | null {
-  ensureDirs();
-  if (!fs.existsSync(SETTINGS_FILE)) return null;
-  try {
-    return JSON.parse(fs.readFileSync(SETTINGS_FILE, "utf-8"));
-  } catch {
-    return null;
-  }
+export async function getSettings(): Promise<Settings | null> {
+  return redis.get<Settings>(SETTINGS_KEY);
 }
 
-export function saveSettings(settings: Settings): void {
-  ensureDirs();
-  fs.writeFileSync(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+export async function saveSettings(settings: Settings): Promise<void> {
+  await redis.set(SETTINGS_KEY, settings);
 }
 
 // --- Week Entries ---
@@ -44,53 +32,48 @@ export interface WeekEntry {
 
 type WeeksMap = Record<string, WeekEntry>;
 
-function readWeeks(): WeeksMap {
-  ensureDirs();
-  if (!fs.existsSync(WEEKS_FILE)) return {};
-  try {
-    return JSON.parse(fs.readFileSync(WEEKS_FILE, "utf-8"));
-  } catch {
-    return {};
-  }
+export async function getAllWeeks(): Promise<WeeksMap> {
+  const data = await redis.get<WeeksMap>(WEEKS_KEY);
+  return data ?? {};
 }
 
-function writeWeeks(weeks: WeeksMap): void {
-  ensureDirs();
-  fs.writeFileSync(WEEKS_FILE, JSON.stringify(weeks, null, 2));
+export async function getWeek(key: string): Promise<WeekEntry | null> {
+  const weeks = await getAllWeeks();
+  return weeks[key] ?? null;
 }
 
-export function getAllWeeks(): WeeksMap {
-  return readWeeks();
-}
-
-export function getWeek(key: string): WeekEntry | null {
-  const weeks = readWeeks();
-  return weeks[key] || null;
-}
-
-export function setWeek(key: string, entry: WeekEntry): void {
-  const weeks = readWeeks();
+export async function setWeek(key: string, entry: WeekEntry): Promise<void> {
+  const weeks = await getAllWeeks();
   weeks[key] = entry;
-  writeWeeks(weeks);
+  await redis.set(WEEKS_KEY, weeks);
 }
 
-export function deleteWeek(key: string): void {
-  const weeks = readWeeks();
+export async function deleteWeek(key: string): Promise<void> {
+  const weeks = await getAllWeeks();
   const entry = weeks[key];
   if (entry) {
-    // Delete the image file
-    const imgPath = path.join(process.cwd(), "public", entry.imagePath);
-    if (fs.existsSync(imgPath)) {
-      fs.unlinkSync(imgPath);
+    try {
+      await del(entry.imagePath);
+    } catch {
+      // Ignore if blob already gone
     }
     delete weeks[key];
-    writeWeeks(weeks);
+    await redis.set(WEEKS_KEY, weeks);
   }
 }
 
 // --- Image Storage ---
 
-export function getImagesDir(): string {
-  ensureDirs();
-  return IMAGES_DIR;
+export async function uploadImage(
+  key: string,
+  buffer: Buffer,
+  contentType: string
+): Promise<string> {
+  const filename = `tempus/${key}.jpg`;
+  const blob = await put(filename, buffer, {
+    access: "public",
+    contentType,
+    addRandomSuffix: false,
+  });
+  return blob.url;
 }

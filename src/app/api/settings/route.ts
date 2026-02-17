@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSettings, saveSettings } from "@/lib/storage";
 
 export async function GET() {
-  const settings = getSettings();
+  const settings = await getSettings();
   if (!settings) {
     return NextResponse.json(null);
   }
@@ -22,6 +22,6 @@ export async function POST(request: NextRequest) {
     expectancyYears: Number(expectancyYears),
   };
 
-  saveSettings(settings);
+  await saveSettings(settings);
   return NextResponse.json(settings);
 }

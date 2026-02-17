@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { setWeek, getWeek, getImagesDir } from "@/lib/storage";
+import { setWeek, getWeek, uploadImage } from "@/lib/storage";
 import { weekKey } from "@/lib/dates";
-import fs from "fs";
-import path from "path";
 import sharp from "sharp";
 
 export async function POST(request: NextRequest) {
@@ -21,28 +19,22 @@ export async function POST(request: NextRequest) {
 
   const key = weekKey(isoYear, isoWeek);
 
-  // Delete old image if replacing
-  const existing = getWeek(key);
+  // Delete old image handled by deleteWeek if replacing
+  const existing = await getWeek(key);
   if (existing) {
-    const oldPath = path.join(process.cwd(), "public", existing.imagePath);
-    if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    // uploadImage with same key will overwrite in blob
   }
 
   // Process image with sharp: resize to max 1600px width, compress as JPEG
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const filename = `${key}.jpg`;
-  const outputDir = path.join(process.cwd(), "data", "images");
-  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
-  const outputPath = path.join(outputDir, filename);
-
-  await sharp(buffer)
+  const rawBuffer = Buffer.from(await file.arrayBuffer());
+  const processedBuffer = await sharp(rawBuffer)
     .resize({ width: 1600, withoutEnlargement: true })
     .jpeg({ quality: 80 })
-    .toFile(outputPath);
+    .toBuffer();
 
-  const imagePath = `/api/images/${filename}`;
+  const imagePath = await uploadImage(key, processedBuffer, "image/jpeg");
 
-  setWeek(key, {
+  await setWeek(key, {
     isoYear,
     isoWeek,
     imagePath,
