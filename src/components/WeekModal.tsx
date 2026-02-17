@@ -53,18 +53,18 @@ export default function WeekModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4 overflow-hidden"
+        className="bg-slate-800 rounded-lg shadow-2xl max-w-lg w-full mx-4 overflow-hidden border border-slate-700"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
-          <span className="text-sm font-medium text-neutral-600">{weekLabel}</span>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-700">
+          <span className="text-sm font-medium text-slate-300">{weekLabel}</span>
           <button
             onClick={onClose}
-            className="text-neutral-400 hover:text-neutral-600 text-lg leading-none"
+            className="text-slate-500 hover:text-slate-300 text-lg leading-none"
           >
             &times;
           </button>
@@ -82,14 +82,14 @@ export default function WeekModal({
                 <button
                   onClick={() => fileRef.current?.click()}
                   disabled={uploading}
-                  className="flex-1 text-sm py-2 border border-neutral-200 rounded hover:bg-neutral-50 transition-colors disabled:opacity-50"
+                  className="flex-1 text-sm py-2 border border-slate-600 text-slate-300 rounded hover:bg-slate-700 transition-colors disabled:opacity-50"
                 >
                   {uploading ? "Uploading..." : "Replace"}
                 </button>
                 <button
                   onClick={handleDelete}
                   disabled={deleting}
-                  className="flex-1 text-sm py-2 border border-red-200 text-red-600 rounded hover:bg-red-50 transition-colors disabled:opacity-50"
+                  className="flex-1 text-sm py-2 border border-red-800 text-red-400 rounded hover:bg-red-900/30 transition-colors disabled:opacity-50"
                 >
                   {deleting ? "Deleting..." : "Delete"}
                 </button>
@@ -97,11 +97,11 @@ export default function WeekModal({
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-sm text-neutral-400 mb-4">No photo for this week.</p>
+              <p className="text-sm text-slate-500 mb-4">No photo for this week.</p>
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={uploading}
-                className="text-sm py-2 px-6 bg-neutral-900 text-white rounded hover:bg-neutral-800 transition-colors disabled:opacity-50"
+                className="text-sm py-2 px-6 bg-slate-200 text-slate-900 rounded hover:bg-white transition-colors disabled:opacity-50"
               >
                 {uploading ? "Uploading..." : "Upload photo"}
               </button>

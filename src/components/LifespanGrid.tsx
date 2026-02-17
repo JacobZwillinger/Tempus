@@ -18,8 +18,9 @@ interface LifespanGridProps {
   onRefresh: () => void;
 }
 
-const DOT = 8;
-const GAP = 2;
+// Columns = 52 weeks, Rows = years
+const DOT = 12;
+const GAP = 3;
 const CELL = DOT + GAP;
 
 export default function LifespanGrid({
@@ -82,67 +83,74 @@ export default function LifespanGrid({
     : null;
   const selectedEntry = selectedKey ? weeks[selectedKey] ?? null : null;
 
-  // Year labels: show every 5 years
+  // Year labels along left side, every 5 years
   const yearLabels = useMemo(() => {
     const labels: { index: number; label: string }[] = [];
-    for (let i = 0; i < totalYears; i += 5) {
-      labels.push({ index: i, label: String(i) });
+    for (let i = 0; i < totalYears; i += 10) {
+      labels.push({ index: i, label: String(birthISOYear + i) });
     }
     return labels;
-  }, [totalYears]);
+  }, [totalYears, birthISOYear]);
+
+  const LABEL_WIDTH = 40;
 
   return (
-    <div className="w-full overflow-x-auto pb-4">
-      {/* Year labels */}
-      <div className="relative" style={{ height: 20, width: totalYears * CELL }}>
-        {yearLabels.map(({ index, label }) => (
-          <span
-            key={index}
-            className="absolute text-[9px] text-neutral-400"
-            style={{ left: index * CELL }}
-          >
-            {label}
-          </span>
-        ))}
-      </div>
+    <div className="w-full overflow-auto pb-4">
+      <div className="inline-flex">
+        {/* Year labels column */}
+        <div
+          className="relative shrink-0"
+          style={{ width: LABEL_WIDTH, height: totalYears * CELL }}
+        >
+          {yearLabels.map(({ index, label }) => (
+            <span
+              key={index}
+              className="absolute text-[10px] text-slate-500 right-2"
+              style={{ top: index * CELL + DOT / 2 - 5 }}
+            >
+              {label}
+            </span>
+          ))}
+        </div>
 
-      {/* Grid */}
-      <div
-        className="relative"
-        style={{
-          width: totalYears * CELL,
-          height: 52 * CELL,
-        }}
-      >
-        {Array.from({ length: 52 }, (_, weekIdx) =>
-          Array.from({ length: totalYears }, (_, yearIdx) => {
-            const isoYear = birthISOYear + yearIdx;
-            const isoWeek = weekIdx + 1;
-            const key = weekKey(isoYear, isoWeek);
-            const hasFill = !!weeks[key];
-            const state = getWeekState(isoYear, isoWeek, currentWeek, hasFill);
+        {/* Grid: columns=weeks (52), rows=years */}
+        <div
+          className="relative"
+          style={{
+            width: 52 * CELL,
+            height: totalYears * CELL,
+          }}
+        >
+          {Array.from({ length: totalYears }, (_, yearIdx) =>
+            Array.from({ length: 52 }, (_, weekIdx) => {
+              const isoYear = birthISOYear + yearIdx;
+              const isoWeek = weekIdx + 1;
+              const key = weekKey(isoYear, isoWeek);
+              const hasFill = !!weeks[key];
+              const state = getWeekState(isoYear, isoWeek, currentWeek, hasFill);
 
-            return (
-              <div
-                key={key}
-                className={cellClass(state)}
-                style={{
-                  position: "absolute",
-                  left: yearIdx * CELL,
-                  top: weekIdx * CELL,
-                  width: DOT,
-                  height: DOT,
-                  borderRadius: "50%",
-                }}
-                onClick={
-                  state !== "future"
-                    ? () => handleCellClick(isoYear, isoWeek, state)
-                    : undefined
-                }
-              />
-            );
-          })
-        )}
+              return (
+                <div
+                  key={key}
+                  className={cellClass(state)}
+                  style={{
+                    position: "absolute",
+                    left: weekIdx * CELL,
+                    top: yearIdx * CELL,
+                    width: DOT,
+                    height: DOT,
+                    borderRadius: "50%",
+                  }}
+                  onClick={
+                    state !== "future"
+                      ? () => handleCellClick(isoYear, isoWeek, state)
+                      : undefined
+                  }
+                />
+              );
+            })
+          )}
+        </div>
       </div>
 
       {selectedWeek && selectedWeek.state !== "future" && (
@@ -169,12 +177,12 @@ export default function LifespanGrid({
 function cellClass(state: WeekState): string {
   switch (state) {
     case "future":
-      return "bg-neutral-100";
+      return "bg-slate-800/40";
     case "past-empty":
-      return "bg-neutral-300 cursor-pointer hover:bg-neutral-400 transition-colors";
+      return "bg-slate-600 cursor-pointer hover:bg-slate-500 transition-colors";
     case "past-filled":
-      return "bg-neutral-800 cursor-pointer hover:bg-neutral-900 transition-colors";
+      return "bg-slate-200 cursor-pointer hover:bg-white transition-colors";
     case "current":
-      return "bg-amber-500 cursor-pointer hover:bg-amber-600 transition-colors";
+      return "bg-amber-500 cursor-pointer hover:bg-amber-400 transition-colors";
   }
 }
